@@ -95,6 +95,45 @@ The free plan is a poor fit: its build container has run out of memory on
 Cesium-sized bundles, and a free service sleeps after 15 minutes of inactivity.
 `starter` is the smallest plan this app is comfortable on.
 
+## Deploy: Hugging Face Spaces (free, no card)
+
+A Docker Space is the only one of these three that needs no payment details, and
+it is the roomiest: 2 vCPU and 16 GB RAM on the free tier, against Render free's
+512 MB. A **private** Space is reachable only by you, so the Space itself is the
+access control and the basic-auth gate becomes defence in depth.
+
+This is what the `deploy/hf-space` branch is for: it is `deploy/hosted` plus the
+front-matter Spaces requires in the root `README.md`. `app_port` there matches
+the Dockerfile's `PORT`, and the image already runs as uid 1000, which is the uid
+Spaces expects — so no image change is needed.
+
+```bash
+# 1. In the browser: huggingface.co -> New Space
+#      SDK: Docker -> Blank, Visibility: Private
+#    Then Settings -> Variables and secrets, add as SECRETS:
+#      GEV_BASIC_AUTH_USER, GEV_BASIC_AUTH_PASS  (both, or it refuses to boot)
+#    plus any provider keys you have.
+
+# 2. In the browser: huggingface.co/settings/tokens -> create a WRITE token.
+
+# 3. Push this branch as the Space's main branch.
+git remote add space https://huggingface.co/spaces/<user>/<space-name>
+git push space deploy/hf-space:main
+```
+
+Spaces builds the Dockerfile on push and streams the log in the Space's
+**Logs** tab. A free Space sleeps after a period of inactivity and its storage is
+ephemeral, so the provider disk caches rebuild on wake — nothing here needs a
+volume.
+
+To update it later, keep this branch a rebase of `deploy/hosted` rather than a
+place to make changes:
+
+```bash
+git checkout deploy/hf-space && git rebase deploy/hosted
+git push space deploy/hf-space:main --force-with-lease
+```
+
 ## Environment
 
 | Variable | Needed for |
